@@ -1,0 +1,8 @@
+[package]
+name = "day01"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage = "https://adventofcode.com/2024/day/1"
+
+[dependencies]
