@@ -50,6 +50,19 @@ pub fn part_one() -> usize {
     sum
 }
 
+fn similarity_score(value: usize, locations: &[usize]) -> usize {
+    let freq = locations.iter().filter(|l| **l == value).count();
+    freq * value
+}
+
+pub fn part_two() -> usize {
+    let (list_one, list_two) = read_locations();
+
+    list_one.into_iter().fold(0_usize, |score, elem| {
+        score + similarity_score(elem, &list_two)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,6 +71,13 @@ mod tests {
     fn test_part_one_sample() {
         let result = part_one();
         let expected = 1110981_usize;
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let result = part_two();
+        let expected = 31_usize;
         assert_eq!(result, expected);
     }
 }
