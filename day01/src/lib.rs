@@ -1,6 +1,7 @@
 use core::panic;
 use std::{
-    fs::{self},
+    collections::HashMap,
+    fs,
     io::{self, BufRead},
     path::Path,
 };
@@ -58,8 +59,30 @@ fn similarity_score(value: usize, locations: &[usize]) -> usize {
 pub fn part_two() -> usize {
     let (list_one, list_two) = read_locations();
 
-    list_one.into_iter().fold(0_usize, |score, elem| {
-        score + similarity_score(elem, &list_two)
+    list_one.into_iter().fold(0_usize, |score, loc| {
+        score + similarity_score(loc, &list_two)
+    })
+}
+
+fn precompute_scores(locations: &[usize]) -> HashMap<usize, usize> {
+    let mut scores = HashMap::new();
+    for &loc in locations {
+        *scores.entry(loc).or_insert(0) += 1;
+    }
+    scores
+}
+
+fn similarity_score_precomputed(loc: usize, freqs: &HashMap<usize, usize>) -> usize {
+    let score = freqs.get(&loc).cloned().unwrap_or(0);
+    loc * score
+}
+
+pub fn part_two_precomputed() -> usize {
+    let (list_one, list_two) = read_locations();
+    let scores_freq = precompute_scores(&list_two);
+
+    list_one.into_iter().fold(0_usize, |scores, loc| {
+        scores + similarity_score_precomputed(loc, &scores_freq)
     })
 }
 
@@ -77,7 +100,14 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two();
-        let expected = 31_usize;
+        let expected = 24869388;
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_part_two_with_freqs() {
+        let result = part_two_precomputed();
+        let expected = 24869388;
         assert_eq!(result, expected);
     }
 }
