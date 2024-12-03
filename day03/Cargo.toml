@@ -1,0 +1,9 @@
+[package]
+name = "day03"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage = "https://adventofcode.com/2024/day/2"
+
+[dependencies]
+regex = "1.11.1"
