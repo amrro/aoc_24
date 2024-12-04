@@ -12,12 +12,10 @@ pub fn read_file(path: &str) -> io::BufReader<fs::File> {
     io::BufReader::new(file)
 }
 
-pub fn count_word(grid: Vec<Vec<char>>, word: &str) -> usize {
+pub fn find_word(grid: Vec<Vec<char>>, word: &str) -> usize {
     let mut count = 0;
 
     let pivot_start = word.chars().next().unwrap();
-    let pivot_end = word.chars().nth_back(0).unwrap();
-    dbg!(pivot_end);
     let word_length = word.len();
     let height = grid.len();
     let width = grid[0].len();
@@ -120,12 +118,57 @@ pub fn part_one() -> usize {
         .map(|line| line.chars().collect::<Vec<char>>())
         .collect();
 
-    count_word(grid, "XMAS")
+    find_word(grid, "XMAS")
+}
+
+pub fn find_mas_x(grid: Vec<Vec<char>>) -> usize {
+    let mut count = 0;
+
+    let pivot_start = 'A';
+    let height = grid.len();
+    let width = grid[0].len();
+
+    for col in 1..height - 1 {
+        for row in 1..width - 1 {
+            if grid[col][row] != pivot_start {
+                continue;
+            }
+
+            let first_diagonal = String::from_iter([
+                grid[col - 1][row - 1],
+                grid[col][row],
+                grid[col + 1][row + 1],
+            ]);
+
+            let second_diagonal = String::from_iter([
+                grid[col - 1][row + 1],
+                grid[col][row],
+                grid[col + 1][row - 1],
+            ]);
+
+            if (first_diagonal == "MAS" || first_diagonal == "SAM")
+                && (second_diagonal == "MAS" || second_diagonal == "SAM")
+            {
+                count += 1;
+            }
+        }
+    }
+
+    count
+}
+
+fn part_two() -> usize {
+    let grid: Vec<Vec<char>> = read_file("src/input.txt")
+        .lines()
+        .map_while(Result::ok)
+        .map(|line| line.chars().collect::<Vec<char>>())
+        .collect();
+
+    find_mas_x(grid)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::char;
 
     use super::*;
 
@@ -141,13 +184,13 @@ MAMMMXMMMM
 MXMXAXMASX";
 
     #[test]
-    fn it_works() {
+    fn part_one_sample() {
         let grid: Vec<Vec<char>> = SAMPLE
             .lines()
             .map(|line| line.chars().collect::<Vec<char>>())
             .collect();
 
-        let count = count_word(grid, "XMAS");
+        let count = find_word(grid, "XMAS");
 
         assert_eq!(count, 18);
     }
@@ -156,5 +199,24 @@ MXMXAXMASX";
     fn test_part_one() {
         let output = part_one();
         assert_eq!(output, 2575);
+    }
+
+    #[test]
+    fn test_part_two_sample() {
+        let grid: Vec<Vec<char>> = SAMPLE
+            .lines()
+            .map(|line| line.chars().collect::<Vec<char>>())
+            .collect();
+
+        let count = find_mas_x(grid);
+
+        assert_eq!(count, 9);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let output = part_two();
+        let expected = 2041_usize;
+        assert_eq!(output, expected);
     }
 }
