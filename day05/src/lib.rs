@@ -1,17 +1,13 @@
-#![allow(dead_code)]
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    fs,
-    io::{self, BufRead},
-    path::Path,
-};
+pub mod read;
+
+use std::collections::{HashMap, HashSet, VecDeque};
 
 /// Represents a directed graph where each node has dependencies defined by rules.
 ///
 /// The graph is implemented as an adjacency list, where the `rules` field maps
 /// each node to the nodes of pages it depends on. This structure is used to model
 /// page ordering rules for an elf's printing system.
-struct Graph {
+pub struct Graph {
     /// Adjacency list where keys are nodes and values are sets of dependencies.
     /// For a rule `X|Y`, `rules[Y]` will include `X`, meaning `Y` depends on `X`.
     rules: HashMap<usize, HashSet<usize>>,
@@ -22,7 +18,7 @@ impl Graph {
     ///
     /// Each rule `(a, b)` indicates that page `b` depends on page `a`,
     /// i.e., `a` must be printed before `b` if both are part of an update.
-    fn new(rules: &[(usize, usize)]) -> Self {
+    pub fn new(rules: &[(usize, usize)]) -> Self {
         let mut graph = HashMap::new();
 
         for &(a, b) in rules {
@@ -75,7 +71,7 @@ impl Graph {
     /// 29 -> [13]
     /// 47 -> [13, 29, 53, 61]
     /// ```
-    fn dispaly(&self) {
+    pub fn dispaly(&self) {
         let mut keys = self.rules.keys().collect::<Vec<&usize>>();
         keys.sort();
         for key in keys {
@@ -102,7 +98,7 @@ impl Graph {
     ///
     /// # Returns
     /// `true` if the sequence respects all ordering rules; `false` otherwise.
-    fn validate(&self, sequence: &[usize]) -> bool {
+    pub fn validate(&self, sequence: &[usize]) -> bool {
         let graph = self.shrink(sequence);
 
         // Store every item's position in sequnce.
@@ -135,7 +131,7 @@ impl Graph {
     ///
     /// # Returns
     /// A vector of `usize` representing the topologically sorted sequence.
-    fn topological_sort(&self, sequence: &[usize]) -> Vec<usize> {
+    pub fn topological_sort(&self, sequence: &[usize]) -> Vec<usize> {
         // Shrink the universal graph into one per this sequence.
         let graph = self.shrink(sequence);
 
@@ -176,94 +172,5 @@ impl Graph {
         }
 
         sorted_seq
-    }
-}
-
-pub fn read_file(path: &str) -> io::BufReader<fs::File> {
-    let file_path = Path::new(&path);
-    let file = fs::File::open(file_path)
-        .unwrap_or_else(|e| panic!("Failed to read file {}\n{}\n", path, e));
-
-    io::BufReader::new(file)
-}
-
-fn get_rules(raw: &str) -> Vec<(usize, usize)> {
-    raw.lines()
-        .map(|l| l.split_once("|").unwrap())
-        .map(|(first, second)| {
-            (
-                first.parse::<usize>().unwrap(),
-                second.parse::<usize>().unwrap(),
-            )
-        })
-        .collect()
-}
-
-fn get_sequences(raw: &str) -> Vec<Vec<usize>> {
-    raw.lines()
-        .map(|l| {
-            l.split(",")
-                .map(|p| p.parse::<usize>().unwrap())
-                .collect::<Vec<usize>>()
-        })
-        .collect()
-}
-
-fn part_one() -> usize {
-    let input = read_file("src/input.txt")
-        .lines()
-        .map_while(Result::ok)
-        .collect::<Vec<String>>()
-        .join("\n");
-
-    let (rule_pairs, seqs) = input.split_once("\n\n").unwrap();
-    let rules = get_rules(rule_pairs);
-
-    let graph = Graph::new(&rules);
-
-    get_sequences(seqs)
-        .iter()
-        .filter(|s| graph.validate(s))
-        .map(|s| s[s.len() / 2])
-        .sum()
-}
-
-fn part_two() -> usize {
-    let input = read_file("src/input.txt")
-        .lines()
-        .map_while(Result::ok)
-        .collect::<Vec<String>>()
-        .join("\n");
-
-    let (rule_pairs, seqs) = input.split_once("\n\n").unwrap();
-    let rules = get_rules(rule_pairs);
-
-    let graph = Graph::new(&rules);
-
-    get_sequences(seqs)
-        .iter()
-        .filter(|s| !graph.validate(s))
-        .map(|seq| graph.topological_sort(seq))
-        .map(|s| s[s.len() / 2])
-        .sum()
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn test_part_two() {
-        let output = part_two();
-        let expected = 0;
-        assert_eq!(output, expected);
-    }
-
-    #[test]
-    fn test_part_one() {
-        let output = part_one();
-        let expected = 0;
-        assert_eq!(output, expected);
     }
 }
