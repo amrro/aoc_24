@@ -4,6 +4,7 @@
 enum Op {
     Add,
     Mul,
+    Concat,
 }
 
 impl Op {
@@ -11,6 +12,7 @@ impl Op {
         match self {
             Op::Add => first + second,
             Op::Mul => first * second,
+            Op::Concat => format!("{first}{second}").parse().unwrap(),
         }
     }
 }
@@ -23,8 +25,12 @@ struct Permutations {
 }
 
 impl Permutations {
-    fn new(op_count: usize) -> Self {
-        let operators = vec![Op::Add, Op::Mul];
+    fn new(op_count: usize, enable_concat: bool) -> Self {
+        let operators = if enable_concat {
+            vec![Op::Add, Op::Mul, Op::Concat]
+        } else {
+            vec![Op::Add, Op::Mul]
+        };
         Self {
             op_count,
             state: vec![Op::Add; op_count],
@@ -32,16 +38,6 @@ impl Permutations {
             operators,
         }
     }
-    // fn is_valid(&self, target: usize, sequence: &[usize]) -> bool {
-    //     let mut result = 0_usize;
-    //     for (idx, operands) in sequence.windows(2).enumerate() {
-    //         if let [first, second] = operands {
-    //             result += self.state[idx].evalute(*first, *second);
-    //         }
-    //     }
-    //
-    //     result == target
-    // }
 }
 
 impl Iterator for Permutations {
@@ -67,11 +63,20 @@ impl Iterator for Permutations {
     }
 }
 
-pub struct Solver;
+#[derive(Default)]
+pub struct Solver {
+    with_concat: bool,
+}
 
 impl Solver {
-    pub fn check(target: usize, sequence: &[usize]) -> bool {
-        let permutations = Permutations::new(sequence.len() - 1);
+    pub fn new() -> Self {
+        Self { with_concat: false }
+    }
+    pub fn with_concat() -> Self {
+        Self { with_concat: true }
+    }
+    pub fn check(&self, target: usize, sequence: &[usize]) -> bool {
+        let permutations = Permutations::new(sequence.len() - 1, self.with_concat);
 
         for perm in permutations {
             let mut result = sequence[0];
@@ -113,6 +118,7 @@ mod tests {
 
     #[test]
     fn test_part_one() {
+        let solver = Solver::new();
         let input: usize = SAMPLE
             .lines()
             .map(|line| line.split_once(": ").unwrap())
@@ -124,10 +130,31 @@ mod tests {
                     .collect();
                 (target, seq)
             })
-            .filter(|(target, seq)| Solver::check(*target, seq))
-            .map(|(target, seq)| target)
+            .filter(|(target, seq)| solver.check(*target, seq))
+            .map(|(target, _seq)| target)
             .sum();
 
         assert_eq!(input, 3749);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let solver = Solver::with_concat();
+        let output: usize = SAMPLE
+            .lines()
+            .map(|line| line.split_once(": ").unwrap())
+            .map(|(target, seq)| {
+                let target = target.parse::<usize>().unwrap();
+                let seq: Vec<usize> = seq
+                    .split(" ")
+                    .map(|v| v.parse::<usize>().unwrap())
+                    .collect();
+                (target, seq)
+            })
+            .filter(|(target, seq)| solver.check(*target, seq))
+            .map(|(target, _seq)| target)
+            .sum();
+
+        assert_eq!(output, 11387);
     }
 }
