@@ -197,7 +197,7 @@ impl City {
     }
 
     pub fn get_unique_antinode_count(&self) -> usize {
-        let antinode_grid = dbg!(self.find_antinodes());
+        let antinode_grid = self.find_antinodes();
         let mut antinode_count = 0;
         for row in 0..antinode_grid.height {
             for col in 0..antinode_grid.width {
