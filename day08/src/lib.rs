@@ -95,12 +95,18 @@ impl Grid {
         }
     }
 
-    fn modify(&mut self, location: &Location, new_value: char) {
+    /// Modifies the grid at the given location.
+    ///
+    /// Returns:
+    /// - `true`: if the location in bound of the grid.
+    /// - `false`: if the location out of the grid.
+    fn modify(&mut self, location: &Location, new_value: char) -> bool {
         if location.x >= self.height || location.y >= self.width {
-            return;
+            return false;
         }
 
         self.grid[location.x][location.y] = new_value;
+        true
     }
 }
 
@@ -160,14 +166,28 @@ impl City {
                         continue;
                     }
                     let (ant, other) = (locs[i], locs[j]);
-
                     let (delta_x, delta_y) = ant - other;
-                    if let Some(new_location) = ant.delta(delta_x, delta_y) {
-                        antinode_grid.modify(&new_location, '#');
+
+                    let mut multiplier = 0;
+                    while let Some(new_antinode) =
+                        ant.delta(multiplier * delta_x, multiplier * delta_y)
+                    {
+                        if !antinode_grid.modify(&new_antinode, '#') {
+                            break;
+                        }
+
+                        multiplier += 1;
                     }
 
-                    if let Some(new_location) = other.delta(-delta_x, -delta_y) {
-                        antinode_grid.modify(&new_location, '#');
+                    let mut multiplier = 0;
+                    while let Some(new_antinode) =
+                        other.delta(multiplier * -delta_x, multiplier * -delta_y)
+                    {
+                        if !antinode_grid.modify(&new_antinode, '#') {
+                            break;
+                        }
+
+                        multiplier += 1;
                     }
                 }
             }
@@ -177,7 +197,7 @@ impl City {
     }
 
     pub fn get_unique_antinode_count(&self) -> usize {
-        let antinode_grid = self.find_antinodes();
+        let antinode_grid = dbg!(self.find_antinodes());
         let mut antinode_count = 0;
         for row in 0..antinode_grid.height {
             for col in 0..antinode_grid.width {
@@ -212,6 +232,6 @@ mod tests {
         let city = City::from(SAMPLE);
 
         let count = city.get_unique_antinode_count();
-        assert_eq!(count, 14);
+        assert_eq!(count, 34);
     }
 }
