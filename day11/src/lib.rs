@@ -35,9 +35,9 @@ impl StoneBlinker {
 
     /// Blinks at single stone.
     fn blink_at(stone: usize) -> Vec<usize> {
-        if stone == 0 {
-            vec![1]
-        } else if stone.to_string().len() % 2 == 0 {
+        // No need to calculate if it's equals to `0`, since it's already seeded
+        // into the transformer `HashMap`.
+        if stone.to_string().len() % 2 == 0 {
             let string = stone.to_string();
             let (first, second) = Self::split(string);
             vec![first, second]
@@ -82,6 +82,7 @@ impl Stones {
         }
     }
 
+    /// Simulates the transformation of all stones for one blink.
     pub fn blinks(&mut self) {
         let mut new_freq = HashMap::new();
         for (stone, count) in self.freqs.drain() {
@@ -94,6 +95,10 @@ impl Stones {
         self.freqs.extend(new_freq);
     }
 
+    /// Repeats the blink simulation for a given number of iterations.
+    ///
+    /// # Returns
+    /// The total number of stones after the specified number of blinks.
     pub fn repeat(&mut self, blinks: usize) -> usize {
         (0..blinks).for_each(|_| self.blinks());
         self.len()
