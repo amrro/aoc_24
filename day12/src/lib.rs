@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{
     collections::{HashSet, VecDeque},
     convert, fmt, ops,
@@ -21,6 +19,18 @@ impl Direction {
             Direction::West => (0, -1),
         }
     }
+
+    pub fn delta_all() -> Vec<(i8, i8)> {
+        [
+            Direction::North,
+            Direction::East,
+            Direction::South,
+            Direction::West,
+        ]
+        .into_iter()
+        .map(|d| d.delta())
+        .collect()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,6 +43,7 @@ struct Location {
 struct Region {
     plots: Vec<Location>,
     perimeter: usize,
+    sides: usize,
 }
 
 pub struct Garden {
@@ -74,9 +85,53 @@ impl Region {
         self.plots.len()
     }
 
+    /// Computes the number of contiguous sides (fence sections) in the region.
+    fn compute_sides(&mut self) {
+        let mut unique_sides = HashSet::new();
+
+        // For each plot in the region
+        for &Location { x, y } in &self.plots {
+            // Check all four directions (North, East, South, West)
+            for (dx, dy) in Direction::delta_all() {
+                let neighbor_x = x.wrapping_add(dx as usize);
+                let neighbor_y = y.wrapping_add(dy as usize);
+
+                // If the neighbor is not part of the region, track this side
+                if !self.plots.contains(&Location {
+                    x: neighbor_x,
+                    y: neighbor_y,
+                }) {
+                    let mut edge_x = x;
+                    let mut edge_y = y;
+
+                    // Traverse along the direction to find the end of the contiguous edge
+                    while self.plots.contains(&Location {
+                        x: edge_x.wrapping_add(dy as usize),
+                        y: edge_y.wrapping_add(dx as usize),
+                    }) && !self.plots.contains(&Location {
+                        x: edge_x.wrapping_add(dx as usize),
+                        y: edge_y.wrapping_add(dy as usize),
+                    }) {
+                        edge_x = edge_x.wrapping_add(dy as usize);
+                        edge_y = edge_y.wrapping_add(dx as usize);
+                    }
+
+                    unique_sides.insert((edge_x, edge_y, dx, dy));
+                }
+            }
+        }
+
+        // The number of unique sides (fence sections)
+        self.sides = unique_sides.len();
+    }
+
     #[inline]
-    fn price(&self) -> usize {
-        self.perimeter * self.area()
+    fn price(&self, discount: bool) -> usize {
+        if discount {
+            self.sides * self.area()
+        } else {
+            self.perimeter * self.area()
+        }
     }
 }
 
@@ -118,9 +173,10 @@ impl Garden {
         let mut queue = VecDeque::from([start]);
         let mut plots = Vec::new();
         let mut perimeter = 0;
-        let plant = self[&start];
+        let sides = 0;
+        let target_plant = self[&start];
 
-        while let Some(location) = queue.pop_front() {
+        while let Some(location) = queue.pop_back() {
             if seen.contains(&location) {
                 continue;
             } else {
@@ -130,13 +186,20 @@ impl Garden {
 
             plots.push(location);
 
-            let adjacents = self.adjacents_to(plant, &location);
+            let adjacents = self.adjacents_to(target_plant, &location);
 
             perimeter += 4 - adjacents.len();
             queue.extend(adjacents);
         }
 
-        Region { plots, perimeter }
+        let mut region = Region {
+            plots,
+            perimeter,
+            sides,
+        };
+        region.compute_sides();
+
+        region
     }
 
     fn regions(&self) -> Vec<Region> {
@@ -152,8 +215,12 @@ impl Garden {
         regions
     }
 
-    pub fn total_price(&self) -> usize {
-        self.regions().into_iter().map(|r| r.price()).sum()
+    #[inline]
+    pub fn total_price(&self, with_discount: bool) -> usize {
+        self.regions()
+            .into_iter()
+            .map(|r| r.price(with_discount))
+            .sum()
     }
 }
 
@@ -202,7 +269,15 @@ MMMISSJEEE
     fn test_garden_region() {
         let garden = Garden::from(SAMPLE);
         // dbg!(garden.regions());
-        let total_price = garden.total_price();
+        let total_price = garden.total_price(false);
         assert_eq!(total_price, 1930);
+    }
+
+    #[test]
+    fn test_garden_regions_with_discount() {
+        let garden = Garden::from(SAMPLE);
+        // dbg!(garden.regions());
+        let total_price = garden.total_price(true);
+        assert_eq!(total_price, 1206);
     }
 }
